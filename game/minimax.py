@@ -3,13 +3,14 @@ from math import inf as infinity
 from random import choice
 import time
 from game.board import Board
+from copy import deepcopy
 
 
 class Minimax(Board):
     def __init__(self):
         super().__init__()
 
-    def minimax(self, depth, player):
+    def minimax(self, temp_board, depth, player):
         """
         AI function that choice the best move
         :param state: current state of the board
@@ -18,6 +19,7 @@ class Minimax(Board):
         :param player: an human or a computer
         :return: a list with [the best row, best col, best score]
         """
+        print(f"{temp_board}, {depth}, {player}")
         if player == self.COMP:
             best = [-1, -1, -infinity]
         else:
@@ -29,9 +31,9 @@ class Minimax(Board):
 
         for cell in self.list_empty_cell:
             x, y = cell[0], cell[1]
-            self.board[x][y] = player
-            score = self.minimax(depth - 1, -player)
-            self.board[x][y] = 0
+            temp_board[x][y] = player
+            score = self.minimax(temp_board, depth - 1, -player)
+            temp_board[x][y] = 0
             score[0], score[1] = x, y
 
             if player == self.COMP:
@@ -43,36 +45,22 @@ class Minimax(Board):
 
         return best
 
-    def minimax_alpha_beta(self, depth, alpha, beta, maximizing_player):
+    def minimax_alpha_beta(self, temp_board, depth, alpha, beta):
         if result := self.evaluate_10():
             return result
 
-        if maximizing_player:
-            max_eval = -infinity
-            for i in range(len(self.board)):
-                for j in range(len(self.board)):
-                    if self.board[i][j] == 0:
-                        self.board[i][j] = self.COMP
-                        _eval = self.minimax_alpha_beta(depth + 1, alpha, beta, False)
-                        self.board[i][j] = 0
-                        max_eval = max(max_eval, _eval)
-                        alpha = max(alpha, _eval)
-                        if beta <= alpha:
-                            break
-            return max_eval
-        else:
-            min_eval = +infinity
-            for i in range(len(self.board)):
-                for j in range(len(self.board)):
-                    if self.board[i][j] == 0:
-                        self.board[i][j] = self.HUMAN
-                        _eval = self.minimax_alpha_beta(depth + 1, alpha, beta, True)
-                        self.board[i][j] = 0
-                        min_eval = min(min_eval, _eval)
-                        beta = min(beta, _eval)
-                        if beta <= alpha:
-                            break
-            return min_eval
+        max_eval = -infinity
+        for i in range(len(temp_board)):
+            for j in range(len(temp_board)):
+                if temp_board[i][j] == 0:
+                    temp_board[i][j] = self.COMP
+                    _eval = self.minimax_alpha_beta(temp_board, depth + 1, alpha, beta)
+                    temp_board[i][j] = 0
+                    max_eval = max(max_eval, _eval)
+                    alpha = max(alpha, _eval)
+                    if beta <= alpha:
+                        break
+        return max_eval
 
     def ai_find_best_move(self):
         best_move = None
@@ -81,7 +69,9 @@ class Minimax(Board):
             for j in range(len(self.board)):
                 if self.board[i][j] == 0:
                     self.board[i][j] = self.COMP
-                    _eval = self.minimax_alpha_beta(0, -infinity, +infinity, False)
+                    temp_board = deepcopy(self.board)
+                    _eval = self.minimax_alpha_beta(temp_board, 0, -infinity, +infinity)
+                    del temp_board
                     self.board[i][j] = 0
                     if _eval > best_eval:
                         best_eval = _eval
@@ -102,25 +92,22 @@ class Minimax(Board):
                 [x + 1, y + 1],
             ]
         )
-        self.set_move(move_x, move_y, self.COMP)
-        # while not :
-        #     move_x, move_y = choice(
-        #         [
-        #             [x, y - 1],
-        #             [x, y + 1],
-        #             [x - 1, y],
-        #             [x + 1, y],
-        #             [x - 1, y - 1],
-        #             [x - 1, y + 1],
-        #             [x + 1, y - 1],
-        #             [x + 1, y + 1],
-        #         ]
-        #     )
+        while not self.set_move(move_x, move_y, self.COMP):
+            move_x, move_y = choice(
+                [
+                    [x, y - 1],
+                    [x, y + 1],
+                    [x - 1, y],
+                    [x + 1, y],
+                    [x - 1, y - 1],
+                    [x - 1, y + 1],
+                    [x + 1, y - 1],
+                    [x + 1, y + 1],
+                ]
+            )
 
     def ai_init_move(self):
-        if self.human_turn_ord == 0 or (
-            self.last_human_turn[0] == 0 or self.last_human_turn[1] == 0
-        ):
+        if self.human_turn_ord == 0:
             return self.set_move(
                 len(self.board) // 2, len(self.board[0]) // 2, self.COMP
             )
@@ -134,7 +121,7 @@ class Minimax(Board):
         :param h_choice: human's choice X or O
         :return:
         """
-        if self.human_turn_ord <= 3:
+        if self.straight_point != 3 and self.human_turn_ord <= 3:
             return self.ai_init_move()
 
         depth = len(self.list_empty_cell)
@@ -150,8 +137,10 @@ class Minimax(Board):
             x = choice([0, 1, 2])
             y = choice([0, 1, 2])
         else:
-            # move = self.minimax(depth, self.COMP)
-            move = self.ai_find_best_move()
+            temp_board = deepcopy(self.board)
+            move = self.minimax(temp_board, depth, self.COMP)
+            del temp_board
+            # move = self.ai_find_best_move()
             x, y = move[0], move[1]
 
         self.set_move(x, y, self.COMP)
@@ -209,13 +198,18 @@ class Minimax(Board):
 
         return score
 
-    def evaluate_10(self):
+    def evaluate_10(self, temp_board=None):
         """
         Function to heuristic evaluation of state.
         :param state: the state of the current board
         :return: +1 if the computer wins; -1 if the human wins; 0 draw
         """
-        wins = self.wins_10()
+        if not temp_board:
+            temp_board = deepcopy(self.board)
+
+        wins = self.wins_10(temp_board)
+        del temp_board
+
         if wins == self.COMP:
             score = +1
         elif wins == self.HUMAN:

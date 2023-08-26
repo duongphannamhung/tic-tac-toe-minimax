@@ -6,6 +6,7 @@ from copy import deepcopy
 class Board:
     def __init__(self):
         self.board = self.init_board()
+        self.straight_point = self.how_to_win()
         self.HUMAN = -1
         self.COMP = +1
         self.list_empty_cell = self.init_empty_cells()
@@ -13,15 +14,15 @@ class Board:
 
     def init_board(self):
         board_length = 0
-        while not board_length or board_length not in [3, 10]:
+        while not board_length or board_length not in [3, 5, 10]:
             try:
                 board_length = int(
                     input(
-                        "Choose board length. We have 3x3 (input 3), 10x10 (input 10): "
+                        "Choose board length. We have 3x3 (input 3), 5x5 (input 5) 10x10 (input 10): "
                     )
                 )
-                if not board_length or board_length not in [3, 10]:
-                    print("Please type in 3 or 10")
+                if not board_length or board_length not in [3, 5, 10]:
+                    print("Please type in 3, 5 or 10")
                     board_length = 0
 
                 return [[0] * board_length for _ in range(board_length)]
@@ -30,6 +31,31 @@ class Board:
                 exit()
             except (KeyError, ValueError):
                 print("Bad choice")
+
+    def how_to_win(self):
+        to_win = 0
+        while not to_win or to_win not in [3, 4, 5]:
+            try:
+                to_win = int(
+                    input("Choose how many point on a rows to win. We have 3 to 5: ")
+                )
+                if not to_win or to_win not in [3, 4, 5]:
+                    print("Please type in 3,4 or 5")
+                    to_win = 0
+
+                if to_win > len(self.board):
+                    print(
+                        f"It's more than length of board {len(self.board)}. Please re-select"
+                    )
+                    to_win = 0
+
+            except (EOFError, KeyboardInterrupt):
+                print("Bye")
+                exit()
+            except (KeyError, ValueError):
+                print("Bad choice")
+
+        return to_win
 
     def init_empty_cells(self):
         list_empty_cell = list()
@@ -58,7 +84,6 @@ class Board:
         str_line = f"---------------------------------------"
 
         print("\n" + str_line)
-        print(self.board)
         for row in self.board:
             for cell in row:
                 symbol = chars[cell]
@@ -115,10 +140,14 @@ class Board:
         else:
             return False
 
-    def wins_10(self):
+    def wins_10(self, temp_board=None):
         self.check_index += 1
+        if not temp_board:
+            temp_board = deepcopy(self.board)
+
+        # print(temp_board)
         print(f"Check wins: {self.check_index} times")
-        if point := self.check_win():
+        if point := self.check_win(temp_board):
             if point * self.HUMAN > 0:
                 return self.HUMAN
             else:
@@ -139,7 +168,10 @@ class Board:
         :param state: the state of the current board
         :return: True if the human or computer wins
         """
-        return self.wins_10()
+        temp_board = deepcopy(self.board)
+        result = self.wins_10(temp_board)
+        del temp_board
+        return result
 
     def set_move(self, x, y, player):
         """
@@ -155,28 +187,26 @@ class Board:
         else:
             return False
 
-    def check_win(self):
-        temp = deepcopy(self.board)
-        for r in range(1, len(temp)):
-            for h in range(1, len(temp[0])):
-                if temp[r - 1][h - 1] * temp[r][h] > 0:
-                    temp[r][h] += temp[r - 1][h - 1]
-                    if abs(temp[r][h]) == 5:
-                        return temp[r][h]
+    def check_win(self, temp_board):
+        for r in range(1, len(temp_board)):
+            for h in range(1, len(temp_board[0])):
+                if temp_board[r - 1][h - 1] * temp_board[r][h] > 0:
+                    temp_board[r][h] += temp_board[r - 1][h - 1]
+                    if abs(temp_board[r][h]) == self.straight_point:
+                        return temp_board[r][h]
 
-        for r in range(0, len(temp)):
-            for h in range(1, len(temp[0])):
-                if temp[r][h - 1] * temp[r][h] > 0:
-                    temp[r][h] += temp[r][h - 1]
-                    if abs(temp[r][h]) == 5:
-                        return temp[r][h]
+        for r in range(0, len(temp_board)):
+            for h in range(1, len(temp_board[0])):
+                if temp_board[r][h - 1] * temp_board[r][h] > 0:
+                    temp_board[r][h] += temp_board[r][h - 1]
+                    if abs(temp_board[r][h]) == self.straight_point:
+                        return temp_board[r][h]
 
-        for r in range(1, len(temp)):
-            for h in range(0, len(temp[0])):
-                if temp[r - 1][h] * temp[r][h] > 0:
-                    temp[r][h] += temp[r - 1][h]
-                    if abs(temp[r][h]) == 5:
-                        return temp[r][h]
+        for r in range(1, len(temp_board)):
+            for h in range(0, len(temp_board[0])):
+                if temp_board[r - 1][h] * temp_board[r][h] > 0:
+                    temp_board[r][h] += temp_board[r - 1][h]
+                    if abs(temp_board[r][h]) == self.straight_point:
+                        return temp_board[r][h]
 
-        del temp
         return

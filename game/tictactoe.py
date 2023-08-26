@@ -25,23 +25,23 @@ class Tictactoe(Minimax):
             self.last_human_turn = self.human_turn()
             self.ai_turn()
 
-        # Game over message
-        if self.wins_10():
-            self.clean()
-            print(f"Human turn [{self.h_choice}]")
-            self.render()
-            print("YOU WIN!")
-        elif self.wins_10():
-            self.clean()
-            print(f"Computer turn [{self.c_choice}]")
-            self.render()
-            print("YOU LOSE!")
-        else:
-            self.clean()
-            self.render()
-            print("DRAW!")
+        # # Game over message
+        # if self.wins_10():
+        #     self.clean()
+        #     print(f"Human turn [{self.h_choice}]")
+        #     self.render()
+        #     print("YOU WIN!")
+        # elif self.wins_10():
+        #     self.clean()
+        #     print(f"Computer turn [{self.c_choice}]")
+        #     self.render()
+        #     print("YOU LOSE!")
+        # else:
+        #     self.clean()
+        #     self.render()
+        #     print("DRAW!")
 
-        exit()
+        # exit()
 
     def choose_x_o(self):
         # Human chooses X or O to play
