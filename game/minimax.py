@@ -23,11 +23,11 @@ class Minimax(Board):
         else:
             best = [-1, -1, +infinity]
 
-        if depth == 0 or self.game_over():
-            score = self.evaluate()
+        if depth == 0 or self.game_over_10():
+            score = self.evaluate_10()
             return [-1, -1, score]
 
-        for cell in self.empty_cells():
+        for cell in self.list_empty_cell:
             x, y = cell[0], cell[1]
             self.board[x][y] = player
             score = self.minimax(depth - 1, -player)
@@ -43,6 +43,89 @@ class Minimax(Board):
 
         return best
 
+    def minimax_alpha_beta(self, depth, alpha, beta, maximizing_player):
+        if result := self.evaluate_10():
+            return result
+
+        if maximizing_player:
+            max_eval = -infinity
+            for i in range(len(self.board)):
+                for j in range(len(self.board)):
+                    if self.board[i][j] == 0:
+                        self.board[i][j] = self.COMP
+                        _eval = self.minimax_alpha_beta(depth + 1, alpha, beta, False)
+                        self.board[i][j] = 0
+                        max_eval = max(max_eval, _eval)
+                        alpha = max(alpha, _eval)
+                        if beta <= alpha:
+                            break
+            return max_eval
+        else:
+            min_eval = +infinity
+            for i in range(len(self.board)):
+                for j in range(len(self.board)):
+                    if self.board[i][j] == 0:
+                        self.board[i][j] = self.HUMAN
+                        _eval = self.minimax_alpha_beta(depth + 1, alpha, beta, True)
+                        self.board[i][j] = 0
+                        min_eval = min(min_eval, _eval)
+                        beta = min(beta, _eval)
+                        if beta <= alpha:
+                            break
+            return min_eval
+
+    def ai_find_best_move(self):
+        best_move = None
+        best_eval = -infinity
+        for i in range(len(self.board)):
+            for j in range(len(self.board)):
+                if self.board[i][j] == 0:
+                    self.board[i][j] = self.COMP
+                    _eval = self.minimax_alpha_beta(0, -infinity, +infinity, False)
+                    self.board[i][j] = 0
+                    if _eval > best_eval:
+                        best_eval = _eval
+                        best_move = (i, j)
+        return best_move
+
+    def ai_find_relative_move(self):
+        x, y = self.last_human_turn
+        move_x, move_y = choice(
+            [
+                [x, y - 1],
+                [x, y + 1],
+                [x - 1, y],
+                [x + 1, y],
+                [x - 1, y - 1],
+                [x - 1, y + 1],
+                [x + 1, y - 1],
+                [x + 1, y + 1],
+            ]
+        )
+        self.set_move(move_x, move_y, self.COMP)
+        # while not :
+        #     move_x, move_y = choice(
+        #         [
+        #             [x, y - 1],
+        #             [x, y + 1],
+        #             [x - 1, y],
+        #             [x + 1, y],
+        #             [x - 1, y - 1],
+        #             [x - 1, y + 1],
+        #             [x + 1, y - 1],
+        #             [x + 1, y + 1],
+        #         ]
+        #     )
+
+    def ai_init_move(self):
+        if self.human_turn_ord == 0 or (
+            self.last_human_turn[0] == 0 or self.last_human_turn[1] == 0
+        ):
+            return self.set_move(
+                len(self.board) // 2, len(self.board[0]) // 2, self.COMP
+            )
+        return self.ai_find_relative_move()
+
     def ai_turn(self):
         """
         It calls the minimax function if the depth < 9,
@@ -51,23 +134,28 @@ class Minimax(Board):
         :param h_choice: human's choice X or O
         :return:
         """
-        depth = len(self.empty_cells())
+        if self.human_turn_ord <= 3:
+            return self.ai_init_move()
+
+        depth = len(self.list_empty_cell)
         if depth == 0 or self.game_over():
             return
 
-        self.clean()
+        # self.clean()
         print(f"Computer turn [{self.c_choice}]")
         self.render()
 
-        if depth == 9:
+        max_depth = len(self.board) * len(self.board[0])
+        if depth == max_depth:
             x = choice([0, 1, 2])
             y = choice([0, 1, 2])
         else:
-            move = self.minimax(depth, self.COMP)
+            # move = self.minimax(depth, self.COMP)
+            move = self.ai_find_best_move()
             x, y = move[0], move[1]
 
         self.set_move(x, y, self.COMP)
-        time.sleep(1)
+        # time.sleep(1)
 
     def human_turn(self):
         """
@@ -76,37 +164,30 @@ class Minimax(Board):
         :param h_choice: human's choice X or O
         :return:
         """
-        depth = len(self.empty_cells())
+        self.human_turn_ord += 1  # Count on human turn
+
+        depth = len(self.list_empty_cell)
         if depth == 0 or self.game_over():
             return
 
         # Dictionary of valid moves
         move = -1
-        moves = {
-            1: [0, 0],
-            2: [0, 1],
-            3: [0, 2],
-            4: [1, 0],
-            5: [1, 1],
-            6: [1, 2],
-            7: [2, 0],
-            8: [2, 1],
-            9: [2, 2],
-        }
 
-        self.clean()
+        # self.clean()
         print(f"Human turn [{self.h_choice}]")
         self.render()
 
-        while move < 1 or move > 9:
+        while move == -1:
             try:
-                move = int(input("Use numpad (1..9): "))
-                coord = moves[move]
-                can_move = self.set_move(coord[0], coord[1], self.HUMAN)
+                X = int(input("Input coord [X,Y]. X first: "))
+                Y = int(input("Input coord [X,Y]. Then Y: "))
+                can_move = self.set_move(X, Y, self.HUMAN)
 
                 if not can_move:
                     print("Bad move")
                     move = -1
+                else:
+                    return (X, Y)
             except (EOFError, KeyboardInterrupt):
                 print("Bye")
                 exit()
@@ -122,6 +203,22 @@ class Minimax(Board):
         if self.wins(self.COMP):
             score = +1
         elif self.wins(self.HUMAN):
+            score = -1
+        else:
+            score = 0
+
+        return score
+
+    def evaluate_10(self):
+        """
+        Function to heuristic evaluation of state.
+        :param state: the state of the current board
+        :return: +1 if the computer wins; -1 if the human wins; 0 draw
+        """
+        wins = self.wins_10()
+        if wins == self.COMP:
+            score = +1
+        elif wins == self.HUMAN:
             score = -1
         else:
             score = 0

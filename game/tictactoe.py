@@ -7,6 +7,7 @@ class Tictactoe(Minimax):
         self.h_choice = ""  # X or O
         self.c_choice = ""  # X or O
         self.first = ""  # if human is the first
+        self.human_turn_ord = 0
 
     def run(self):
         """
@@ -16,21 +17,21 @@ class Tictactoe(Minimax):
         self.choose_turn()
 
         # Main loop of this game
-        while len(self.empty_cells()) > 0 and not self.game_over():
+        while len(self.list_empty_cell) > 0 and not self.game_over_10():
             if self.first == "N":
                 self.ai_turn()
                 self.first = ""
 
-            self.human_turn()
+            self.last_human_turn = self.human_turn()
             self.ai_turn()
 
         # Game over message
-        if self.wins(self.HUMAN):
+        if self.wins_10():
             self.clean()
             print(f"Human turn [{self.h_choice}]")
             self.render()
             print("YOU WIN!")
-        elif self.wins(self.COMP):
+        elif self.wins_10():
             self.clean()
             print(f"Computer turn [{self.c_choice}]")
             self.render()
